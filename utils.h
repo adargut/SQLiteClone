@@ -26,16 +26,16 @@ const uint32_t USERNAME_OFFSET = ID_OFFSET + ID_SIZE;
 const uint32_t EMAIL_OFFSET = USERNAME_OFFSET + USERNAME_SIZE;
 const uint32_t ROW_SIZE = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
 
-void serialize_row(char *destination, Row *row) {
-    memcpy(destination + ID_OFFSET, &row->id, ID_SIZE);
-    memcpy(destination + USERNAME_OFFSET, &row->username, USERNAME_SIZE);
-    memcpy(destination + EMAIL_OFFSET, &row->email, EMAIL_SIZE);
+static inline void serialize_row(Row* source, char* destination) {
+    memcpy(destination + ID_OFFSET, &(source->id), ID_SIZE);
+    memcpy(destination + USERNAME_OFFSET, &(source->username), USERNAME_SIZE);
+    memcpy(destination + EMAIL_OFFSET, &(source->email), EMAIL_SIZE);
 }
 
-void deserialize_row(char *source, Row *row) {
-    memcpy(&row->id, source + ID_OFFSET, ID_SIZE);
-    memcpy(&row->username, source + USERNAME_OFFSET, USERNAME_SIZE);
-    memcpy(&row->email, source + EMAIL_OFFSET, EMAIL_SIZE);
+static inline void deserialize_row(char* source, Row* destination) {
+    memcpy(&(destination->id), source + ID_OFFSET, ID_SIZE);
+    memcpy(&(destination->username), source + USERNAME_OFFSET, USERNAME_SIZE);
+    memcpy(&(destination->email), source + EMAIL_OFFSET, EMAIL_SIZE);
 }
 
 using string = std::string;

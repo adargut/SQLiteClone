@@ -7,6 +7,8 @@
 int main() {
     string input;
     Statement *statement;
+    auto table = create_table();
+
     while (true) {
         std::getline(std::cin, input);
 
@@ -24,7 +26,12 @@ int main() {
         else {
             statement = (Statement *)malloc(sizeof(Statement));
             prepare_statement(input, statement);
-            execute_statement(input, statement);
+            switch(execute_statement(input, statement, table)) {
+                case EXECUTE_TABLE_FULL:
+                    std::cout << "Error: table was full\n";
+                case EXECUTE_SUCCESS:
+                    std::cout << "Executed successfully\n";
+            }
             free(statement);
         }
     }
