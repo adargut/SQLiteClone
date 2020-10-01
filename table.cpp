@@ -23,12 +23,11 @@ char *locate_row_in_memory(Table *table, uint32_t row_num) {
 
     // Allocate memory for page only when we try to access it
 
-    if (!page) {
-        page = (char *)malloc(PAGE_SIZE);
-        table->pages[page_num] = page;
+    if (page == nullptr) {
+        page = table->pages[page_num] = (char *)malloc(PAGE_SIZE);
     }
 
-    // Compute offset for row in page
+    // Compute offset for Row in page
 
     uint32_t row_offset = row_num % ROWS_PER_PAGE;
     uint32_t byte_offset = row_offset * ROW_SIZE;
