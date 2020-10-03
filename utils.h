@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #include <cstdlib>
 
+// Constants, typedefs, macros and general functions useful for more than one module implemented below
+
 #define TABLE_MAX_PAGES 100
 #define COL_USERNAME_SIZE 32
 #define COL_EMAIL_SIZE 255
@@ -23,6 +25,23 @@ struct Row {
     char username[COL_USERNAME_SIZE + 1]; // TODO fix insertion of too long usernames
     char email[COL_EMAIL_SIZE + 1];
 };
+
+typedef struct {
+    int fd;
+    uint32_t file_length;
+    char *pages[TABLE_MAX_PAGES];
+} Pager;
+
+struct Table {
+    uint32_t num_rows;
+    Pager *pager;
+};
+
+typedef struct {
+    Table *table;
+    size_t row_num;
+    bool end_of_table;
+} Cursor;
 
 const uint32_t ID_SIZE = size_of_attribute(Row, id);
 const uint32_t USERNAME_SIZE = size_of_attribute(Row, username);

@@ -8,6 +8,7 @@
 #include "utils.h"
 #include "row.h"
 #include "table.h"
+#include "cursor.h"
 
 typedef enum {
     PREPARE_SUCCESS,

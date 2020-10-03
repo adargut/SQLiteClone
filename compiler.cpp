@@ -3,7 +3,6 @@
 //
 
 #include "compiler.h"
-#include "utils.h"
 
 PrepareResult prepare_statement(const string &input, Statement *statement) {
     auto splitted_string = split_input(input);
@@ -36,12 +35,15 @@ PrepareResult prepare_statement(const string &input, Statement *statement) {
 ExecuteResult execute_insert(Statement *statement, Table *table) {
     if (table->num_rows == TABLE_MAX_ROWS) return EXECUTE_TABLE_FULL;
 
+    Cursor *cursor = table_end(table);
+
     // Serialize Row into virtual memory
 
     Row row_to_insert = statement->row_to_insert;
-    serialize_row(&row_to_insert, locate_row_in_memory(table, table->num_rows));
+    serialize_row(&row_to_insert, cursor_value(cursor));
     table->num_rows++;
 
+    free(cursor);
     return EXECUTE_SUCCESS;
 }
 
@@ -50,11 +52,15 @@ ExecuteResult execute_select(Statement *statement, Table *table) { // TODO fix s
 
     // Deserialize all rows of table and print them
 
-    for (int i = 0; i < table->num_rows; i++) {
-        deserialize_row(locate_row_in_memory(table, i), curr_row);
+    Cursor *cursor = table_start(table);
+
+    while (!cursor->end_of_table) {
+        deserialize_row(cursor_value(cursor), curr_row);
         string row_data = std::to_string(curr_row->id) + " " + curr_row->username + " " + curr_row->email;
         std::cout << row_data << std::endl;
+        advance_cursor(cursor);
     }
+
     free(curr_row);
     return EXECUTE_SUCCESS;
 }

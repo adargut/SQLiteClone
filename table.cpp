@@ -56,9 +56,10 @@ void db_close(Table *table) {
     free_table(table);
 }
 
-char *locate_row_in_memory(Table *table, uint32_t row_num) {
+char *cursor_value(Cursor *cursor) {
+    uint32_t row_num = cursor->row_num;
     uint32_t page_num = row_num / ROWS_PER_PAGE;
-    auto page = get_page(table->pager, page_num);
+    auto page = get_page(cursor->table->pager, page_num);
 
     // Compute offset for Row in page
 

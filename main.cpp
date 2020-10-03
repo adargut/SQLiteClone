@@ -50,8 +50,13 @@ int main(int argc, char* argv[]) {
             switch(execute_statement(input, &statement, table)) {
                 case EXECUTE_TABLE_FULL:
                     std::cout << "Error: table was full\n";
+                    break;
                 case EXECUTE_SUCCESS:
                     std::cout << "Executed successfully\n";
+                    break;
+                case EXECUTE_FAILURE:
+                    std::cout << "Execution failed\n";
+                    break;
             }
         }
     }
