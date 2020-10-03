@@ -5,9 +5,7 @@
 #include "table.h"
 
 void free_table(Table *table) {
-    for (int i = 0; i < TABLE_MAX_PAGES; i++) {
-        if (table->pager->pages[i]) free(table->pager->pages[i]);
-    }
+    for (auto &page : table->pager->pages) if (page) free(page);
     free(table->pager);
     free(table);
 }
@@ -35,6 +33,18 @@ void db_close(Table *table) {
             pager->pages[i] = nullptr;
         }
     }
+
+    // Flush partial pages to disc
+
+    uint32_t num_additional_rows = table->num_rows % ROWS_PER_PAGE;
+    if (num_additional_rows > 0) {
+        uint32_t page_num = num_full_pages;
+        if (pager->pages[page_num]) {
+            pager_flush(pager, page_num, num_additional_rows * ROW_SIZE);
+            free(pager->pages[page_num]);
+            pager->pages[page_num] = nullptr;
+            }
+        }
 
     // Close fd and free all allocated memory
 

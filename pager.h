@@ -6,6 +6,7 @@
 #define SQLITECLONE_PAGER_H
 
 #include "utils.h"
+#include <sys/stat.h>
 
 typedef struct {
     int fd;

@@ -5,7 +5,7 @@
 #include "pager.h"
 
 Pager *pager_open(const char* filename) {
-    int fd = _open(filename, O_RDWR, O_CREAT);
+    int fd = open(filename, _O_RDWR | _O_CREAT, _S_IWUSR, _S_IRUSR);
 
     if (fd == -1) {
         std::cout << "Critical Error: unable to create db file\n";
@@ -61,7 +61,7 @@ void pager_flush(Pager *pager, uint32_t page_num, uint32_t size) {
         exit(EXIT_FAILURE);
     }
 
-    size_t bytes_written = write(pager->fd, pager->pages[page_num], size);
+    ssize_t bytes_written = write(pager->fd, pager->pages[page_num], size);
 
     if (bytes_written == -1) {
         std::cout << "Critical Error: writing to file failed\n";
