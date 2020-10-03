@@ -8,26 +8,37 @@
 #include <string>
 #include <iostream>
 #include <vector>
-#include "row.h"
+#include <cstring>
+#include <io.h>
+#include <fcntl.h>
+#include <cstdlib>
+
+#define TABLE_MAX_PAGES 100
+#define COL_USERNAME_SIZE 32
+#define COL_EMAIL_SIZE 255
+#define size_of_attribute(Struct, Attribute) sizeof(((Struct*)0)->Attribute)
+
+struct Row {
+    uint32_t id;
+    char username[COL_USERNAME_SIZE + 1]; // TODO fix insertion of too long usernames
+    char email[COL_EMAIL_SIZE + 1];
+};
+
+const uint32_t ID_SIZE = size_of_attribute(Row, id);
+const uint32_t USERNAME_SIZE = size_of_attribute(Row, username);
+const uint32_t EMAIL_SIZE = size_of_attribute(Row, email);
+
+const uint32_t ID_OFFSET = 0;
+const uint32_t USERNAME_OFFSET = ID_OFFSET + ID_SIZE;
+const uint32_t EMAIL_OFFSET = USERNAME_OFFSET + USERNAME_SIZE;
+const uint32_t ROW_SIZE = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
+
+const uint32_t PAGE_SIZE = 4096;
+const uint32_t ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE;
+const uint32_t TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES;
 
 using string = std::string;
 
-static inline std::vector<string> split_input(const string &input) {
-    std::vector<string> res;
-    int l = 0;
-    int r = 0;
-    for (int i = 0; i < input.size(); i++) {
-        if (input.at(i) != ' ') {
-            r++;
-        }
-        else {
-            res.push_back(input.substr(l, (r - l)));
-            l = i + 1;
-            r = l;
-        }
-    }
-    res.push_back(input.substr(l));
-    return res;
-}
+std::vector<string> split_input(const string &input);
 
 #endif //SQLITECLONE_UTILS_H

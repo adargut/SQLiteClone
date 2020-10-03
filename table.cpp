@@ -4,28 +4,51 @@
 
 #include "table.h"
 
-Table *create_table() {
+void free_table(Table *table) {
+    for (int i = 0; i < TABLE_MAX_PAGES; i++) {
+        if (table->pager->pages[i]) free(table->pager->pages[i]);
+    }
+    free(table->pager);
+    free(table);
+}
+
+Table *db_open(const char* filename) {
     auto table = (Table *)malloc(sizeof(Table));
-    table->num_rows = 0;
-    for (auto &page : table->pages) page = nullptr;
+    auto pager = pager_open(filename);
+
+    table->pager = pager;
+    table->num_rows = pager->file_length / ROW_SIZE;
 
     return table;
 }
 
-void free_table(Table *table) {
-    for (int i = 0; i < table->num_rows;) free(table->pages[i++]);
-    free(table);
+void db_close(Table *table) {
+    uint32_t num_full_pages = table->num_rows / ROWS_PER_PAGE;
+    auto pager = table->pager;
+
+    // Flush all cached pages to disc
+
+    for (int i = 0; i < num_full_pages; i++) {
+        if (pager->pages[i]) {
+            pager_flush(pager, i, PAGE_SIZE);
+            free(pager->pages[i]);
+            pager->pages[i] = nullptr;
+        }
+    }
+
+    // Close fd and free all allocated memory
+
+    int err = close(pager->fd);
+    if (err == -1) {
+        std::cout << "Critical Error: could not close db file\n";
+        exit(EXIT_FAILURE);
+    }
+    free_table(table);
 }
 
 char *locate_row_in_memory(Table *table, uint32_t row_num) {
     uint32_t page_num = row_num / ROWS_PER_PAGE;
-    char *page = table->pages[page_num];
-
-    // Allocate memory for page only when we try to access it
-
-    if (page == nullptr) {
-        page = table->pages[page_num] = (char *)malloc(PAGE_SIZE);
-    }
+    auto page = get_page(table->pager, page_num);
 
     // Compute offset for Row in page
 

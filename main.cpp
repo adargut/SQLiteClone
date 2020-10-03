@@ -4,10 +4,15 @@
 #include "meta_compiler.h"
 #pragma ide diagnostic ignored "EndlessLoop" // TODO remove this after finishing
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cout << "Critical Error: must provide db name\n";
+        exit(EXIT_FAILURE);
+    }
+
+    auto table = db_open(argv[1]);
     string input;
     Statement statement;
-    auto table = create_table();
 
     start:
     while (true) {
@@ -18,7 +23,7 @@ int main() {
         if (input[0] == '.') {
             auto metaCommand = (MetaCommand *)malloc(sizeof(MetaCommand));
             parse_meta_command(input, metaCommand);
-            execute_meta_command(metaCommand); // TODO free table on exit
+            execute_meta_command(metaCommand, table);
             free(metaCommand);
         }
 
@@ -32,6 +37,14 @@ int main() {
             }
             if (error == PREPARE_UNRECOGNIZED_STATEMENT) {
                 std::cout << "Error: unrecognized statement\n";
+                goto start;
+            }
+            if (error == PREPARE_STRING_MAX_LENGTH_EXCEEDED) {
+                std::cout <<"Error: string given is too long\n";
+                goto start;
+            }
+            if (error == PREPARE_NEGATIVE_ID) {
+                std::cout << "Error: id must be a positive integer\n";
                 goto start;
             }
             switch(execute_statement(input, &statement, table)) {

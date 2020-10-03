@@ -22,8 +22,11 @@ PrepareResult prepare_statement(const string &input, Statement *statement) {
         // Fill Row with data from insert
 
         set_row_id(&statement->row_to_insert, std::stoi(splitted_string[1]));
+        if (statement->row_to_insert.id < 0) return PREPARE_NEGATIVE_ID;
         set_row_username(&statement->row_to_insert, splitted_string[2], splitted_string[2].size());
+        if (strlen(statement->row_to_insert.username) > COL_USERNAME_SIZE) return PREPARE_STRING_MAX_LENGTH_EXCEEDED;
         set_row_email(&statement->row_to_insert,  splitted_string[3], splitted_string[3].size());
+        if (strlen(statement->row_to_insert.email) > COL_EMAIL_SIZE) return PREPARE_STRING_MAX_LENGTH_EXCEEDED;
 
         return PREPARE_SUCCESS;
     }
@@ -64,5 +67,6 @@ ExecuteResult execute_statement(const string &input, Statement *statement, Table
             return execute_insert(statement, table);
         default:
             std::cout << "Unrecognized keyword or bad syntax '" << input << "'\n";
+            return EXECUTE_FAILURE;
     }
 }

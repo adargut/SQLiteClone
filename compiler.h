@@ -6,17 +6,21 @@
 #define SQLITECLONE_COMPILER_H
 
 #include "utils.h"
+#include "row.h"
 #include "table.h"
 
 typedef enum {
     PREPARE_SUCCESS,
     PREPARE_UNRECOGNIZED_STATEMENT,
-    PREPARE_SYNTAX_ERROR
+    PREPARE_SYNTAX_ERROR,
+    PREPARE_STRING_MAX_LENGTH_EXCEEDED,
+    PREPARE_NEGATIVE_ID
 } PrepareResult;
 
 typedef enum {
     EXECUTE_TABLE_FULL,
-    EXECUTE_SUCCESS
+    EXECUTE_SUCCESS,
+    EXECUTE_FAILURE
 } ExecuteResult;
 
 typedef enum {

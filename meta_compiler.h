@@ -6,6 +6,7 @@
 #define SQLITECLONE_META_COMPILER_H
 
 #include "utils.h"
+#include "table.h"
 
 enum MetaCommandType {
     EXIT,
@@ -17,6 +18,6 @@ struct MetaCommand {
 };
 
 void parse_meta_command(const string &input, MetaCommand *metaCommand);
-void execute_meta_command(MetaCommand *metaCommand);
+void execute_meta_command(MetaCommand *metaCommand, Table *table);
 
 #endif //SQLITECLONE_META_COMPILER_H

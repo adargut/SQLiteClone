@@ -12,8 +12,9 @@ void parse_meta_command(const string &input, MetaCommand *metaCommand) {
     metaCommand->metaCommandType = MetaCommandType::UNRECOGNIZED;
 }
 
-void execute_meta_command(MetaCommand *metaCommand) {
+void execute_meta_command(MetaCommand *metaCommand, Table *table) {
     if (metaCommand->metaCommandType == MetaCommandType::EXIT) {
+        db_close(table);
         free(metaCommand);
         exit(EXIT_SUCCESS);
     }

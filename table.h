@@ -6,19 +6,15 @@
 #define SQLITECLONE_TABLE_H
 
 #include "utils.h"
-
-#define TABLE_MAX_PAGES 100
-
-const uint32_t PAGE_SIZE = 4096;
-const uint32_t ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE;
-const uint32_t TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES;
+#include "pager.h"
 
 struct Table {
     uint32_t num_rows;
-    char *pages[TABLE_MAX_PAGES];
+    Pager *pager;
 };
 
-Table *create_table();
+Table *db_open(const char* filename);
+void db_close(Table *table);
 void free_table(Table *table);
 char *locate_row_in_memory(Table *table, uint32_t row_num);
 
