@@ -7,9 +7,11 @@
 
 #include "utils.h"
 #include "table.h"
+#include "btree.h"
 
 Cursor* table_start(Table *table);
 Cursor* table_end(Table *table);
 void advance_cursor(Cursor *cursor);
+char *cursor_value(Cursor *cursor);
 
 #endif //SQLITECLONE_CURSOR_H

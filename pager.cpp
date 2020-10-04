@@ -14,11 +14,18 @@ Pager *pager_open(const char* filename) {
         std::cout << "Critical Error: unable to create db file\n";
         exit(EXIT_SUCCESS);
     }
-    Pager *pager = (Pager *)malloc(sizeof(Pager));
+    auto pager = (Pager *)malloc(sizeof(Pager));
     pager->fd = fd;
     pager->file_length = lseek(fd, 0, SEEK_END);
-    for (int i = 0; i < TABLE_MAX_PAGES; i++) {
-        pager->pages[i] = nullptr;
+    pager->num_pages = pager->file_length / PAGE_SIZE;
+
+    if (pager->file_length % PAGE_SIZE != 0) {
+        std::cout << "Critical Error: db file is corrupt and cannot be split into pages\n";
+        exit(EXIT_FAILURE);
+    }
+
+    for (auto & page : pager->pages) {
+        page = nullptr;
     }
 
     return pager;
@@ -47,12 +54,16 @@ char *get_page(Pager *pager, int page_num) {
             }
         }
         pager->pages[page_num] = page;
+
+        if (page_num >= pager->num_pages) {
+            pager->num_pages = page_num + 1;
+        }
     }
 
     return pager->pages[page_num];
 }
 
-void pager_flush(Pager *pager, uint32_t page_num, uint32_t size) {
+void pager_flush(Pager *pager, uint32_t page_num) {
     if (pager->pages[page_num] == nullptr) {
         std::cout << "Critical Error: attempt to flush a null page to disc\n";
         exit(EXIT_FAILURE);
@@ -64,7 +75,7 @@ void pager_flush(Pager *pager, uint32_t page_num, uint32_t size) {
         exit(EXIT_FAILURE);
     }
 
-    int bytes_written = write(pager->fd, pager->pages[page_num], size);
+    int bytes_written = write(pager->fd, pager->pages[page_num], PAGE_SIZE);
 
     if (bytes_written == -1) {
         std::cout << "Critical Error: writing to file failed\n";

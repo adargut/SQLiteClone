@@ -29,17 +29,19 @@ struct Row {
 typedef struct {
     int fd;
     uint32_t file_length;
+    uint32_t num_pages;
     char *pages[TABLE_MAX_PAGES];
 } Pager;
 
 struct Table {
-    uint32_t num_rows;
+    uint32_t root_page_num;
     Pager *pager;
 };
 
 typedef struct {
     Table *table;
-    size_t row_num;
+    uint32_t page_num;
+    uint32_t cell_num;
     bool end_of_table;
 } Cursor;
 
