@@ -15,7 +15,14 @@ Table *db_open(const char* filename) {
     auto pager = pager_open(filename);
 
     table->pager = pager;
-    table->num_rows = pager->file_length / ROW_SIZE;
+    table->root_page_num = 0;
+
+    // db is an empty tree, initialize its root as page 0
+
+    if (pager->num_pages == 0) {
+        char* root_node = get_page(pager, 0);
+        initialize_leaf_node(root_node);
+    }
 
     return table;
 }

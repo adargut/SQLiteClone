@@ -10,6 +10,7 @@
 
 enum MetaCommandType {
     EXIT,
+    CONSTANTS,
     UNRECOGNIZED
 };
 

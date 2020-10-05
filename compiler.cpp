@@ -33,15 +33,18 @@ PrepareResult prepare_statement(const string &input, Statement *statement) {
 }
 
 ExecuteResult execute_insert(Statement *statement, Table *table) {
-    if (table->num_rows == TABLE_MAX_ROWS) return EXECUTE_TABLE_FULL;
+    auto node = get_page(table->pager, table->root_page_num);
+
+    if (*leaf_node_num_cells(node) >= LEAF_NODE_MAX_CELLS) {
+        return EXECUTE_TABLE_FULL;
+    }
 
     Cursor *cursor = table_end(table);
 
     // Serialize Row into virtual memory
 
-    Row row_to_insert = statement->row_to_insert;
-    serialize_row(&row_to_insert, cursor_value(cursor));
-    table->num_rows++;
+    Row* row_to_insert = &(statement->row_to_insert);
+    leaf_node_insert(cursor, row_to_insert->id, row_to_insert);
 
     free(cursor);
     return EXECUTE_SUCCESS;

@@ -6,6 +6,7 @@
 #define SQLITECLONE_BTREE_H
 
 #include "utils.h"
+#include "row.h"
 
 // Common node header layout
 
@@ -51,5 +52,7 @@ char* leaf_node_cell(char* node, uint32_t cell_num);
 char* leaf_node_key(char* node, uint32_t cell_num);
 char* leaf_node_value(char* node, uint32_t cell_num);
 void initialize_leaf_node(char* node);
+void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value);
+void print_leaf_node(char* node);
 
 #endif //SQLITECLONE_BTREE_H
