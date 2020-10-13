@@ -17,16 +17,29 @@ Cursor* table_start(Table *table) {
     return cursor;
 }
 
-Cursor* table_end(Table *table) {
-    auto cursor = (Cursor *)malloc(sizeof(Cursor));
-    cursor->table = table;
-    cursor->end_of_table = true;
+// TODO maybe remove this?
+//Cursor* table_end(Table *table) {
+//    auto cursor = (Cursor *)malloc(sizeof(Cursor));
+//    cursor->table = table;
+//    cursor->end_of_table = true;
+//
+//    cursor->page_num = table->root_page_num;
+//    auto root_node = get_page(table->pager, table->root_page_num);
+//    cursor->cell_num = *leaf_node_num_cells(root_node);
+//
+//    return cursor;
+//}
 
-    cursor->page_num = table->root_page_num;
+Cursor* table_find_by_id(Table *table, size_t id) {
     auto root_node = get_page(table->pager, table->root_page_num);
-    cursor->cell_num = *leaf_node_num_cells(root_node);
 
-    return cursor;
+    if (get_node_type(root_node) == NODE_LEAF) {
+        return leaf_node_find(table, table->root_page_num, id);
+    }
+    else {
+        std::cout << "Need to implement internal nodes\n";
+        exit(EXIT_FAILURE);
+    }
 }
 
 void advance_cursor(Cursor *cursor) {
@@ -49,5 +62,5 @@ char *cursor_value(Cursor *cursor) {
     uint32_t page_num = cursor->page_num;
     auto page = get_page(cursor->table->pager, page_num);
 
-    return leaf_node_value(page, cursor->cell_num)
+    return leaf_node_value(page, cursor->cell_num);
 }

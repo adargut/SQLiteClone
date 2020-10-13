@@ -47,9 +47,14 @@ struct Node {
   Node **child_nodes;
 };
 
+char *get_page(Pager *pager, int page_num);
+
 uint32_t* leaf_node_num_cells(char* node);
 char* leaf_node_cell(char* node, uint32_t cell_num);
 char* leaf_node_key(char* node, uint32_t cell_num);
+Cursor* leaf_node_find(Table* table, uint32_t page_num, size_t id);
+NodeType get_node_type(const char* node);
+void set_node_type(char* node, NodeType nodeType);
 char* leaf_node_value(char* node, uint32_t cell_num);
 void initialize_leaf_node(char* node);
 void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value);

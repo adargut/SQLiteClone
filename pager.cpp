@@ -9,11 +9,11 @@ Pager *pager_open(const char* filename) {
     // Cache for pages
 
     int fd = open(filename, _O_RDWR | _O_CREAT, _S_IWUSR, _S_IRUSR);
-
     if (fd == -1) {
         std::cout << "Critical Error: unable to create db file\n";
         exit(EXIT_SUCCESS);
     }
+
     auto pager = (Pager *)malloc(sizeof(Pager));
     pager->fd = fd;
     pager->file_length = lseek(fd, 0, SEEK_END);

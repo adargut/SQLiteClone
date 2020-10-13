@@ -21,6 +21,7 @@ char* leaf_node_value(char* node, uint32_t cell_num) {
 }
 
 void initialize_leaf_node(char* node) {
+    set_node_type(node, NODE_LEAF);
     *(leaf_node_num_cells(node)) = 0;
 }
 
@@ -57,4 +58,49 @@ void print_leaf_node(char* node) {
     for (uint32_t i = 0; i < num_cells; i++) {
         printf("Key of cell %d is %d\n", i, *leaf_node_key(node, i));
     }
+}
+
+Cursor* leaf_node_find(Table* table, uint32_t page_num, size_t id) {
+    auto root = get_page(table->pager, page_num);
+    size_t num_cells = *leaf_node_num_cells(root);
+
+    Cursor *cursor = (Cursor *)malloc(sizeof(Cursor));
+    cursor->page_num = page_num;
+    cursor->table = table;
+    size_t l = 0, r = num_cells;
+
+    // Perform binary search to find leaf node
+
+    while (l < r) {
+        size_t mid = (l + r) / 2;
+        size_t key_at_mid = *leaf_node_key(root, mid);
+        if (key_at_mid == id) {
+            cursor->cell_num = mid;
+            return cursor;
+        }
+        else if (key_at_mid > id) {
+            r = mid;
+        }
+        else l = mid + 1;
+    }
+    cursor->cell_num = l;
+    // TODO this if clause should never be true, probably can be removed after testing
+    if (cursor->cell_num == -1) {
+        std::cout << "Critical Error: binary search implementation is wrong\n";
+        exit(EXIT_SUCCESS);
+    }
+    return cursor;
+}
+
+NodeType get_node_type(const char* node) {
+    uint8_t value = *((uint8_t*)(node + NODE_TYPE_OFFSET));
+    return (NodeType)value;
+}
+
+void set_node_type(char* node, NodeType nodeType) {
+
+    // Cast to 8 bits in order to make sure node type is stored in one continuous byte
+
+    uint8_t type = nodeType;
+    *((uint8_t*)(node + NODE_TYPE_OFFSET)) = type;
 }

@@ -34,12 +34,20 @@ PrepareResult prepare_statement(const string &input, Statement *statement) {
 
 ExecuteResult execute_insert(Statement *statement, Table *table) {
     auto node = get_page(table->pager, table->root_page_num);
+    uint32_t num_cells = *leaf_node_num_cells(node);
 
-    if (*leaf_node_num_cells(node) >= LEAF_NODE_MAX_CELLS) {
+    if (num_cells >= LEAF_NODE_MAX_CELLS) {
         return EXECUTE_TABLE_FULL;
     }
 
-    Cursor *cursor = table_end(table);
+    size_t row_id = statement->row_to_insert.id;
+    Cursor *cursor = table_find_by_id(table, row_id); //table_end(table); TODO remove table_end?
+
+    // Check for duplicate id before insertion
+
+    if (cursor->cell_num < num_cells) {
+        if (*leaf_node_key(node, cursor->cell_num) == row_id) return EXECUTE_DUPLICATE_KEY;
+    }
 
     // Serialize Row into virtual memory
 
@@ -50,7 +58,7 @@ ExecuteResult execute_insert(Statement *statement, Table *table) {
     return EXECUTE_SUCCESS;
 }
 
-ExecuteResult execute_select(Statement *statement, Table *table) { // TODO fix select or insert? not working
+ExecuteResult execute_select(Statement *statement, Table *table) {
     Row *curr_row = (Row *)malloc(sizeof(Row));
 
     // Deserialize all rows of table and print them

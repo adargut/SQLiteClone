@@ -54,6 +54,9 @@ int main(int argc, char* argv[]) {
                 case EXECUTE_SUCCESS:
                     std::cout << "Executed successfully\n";
                     break;
+                case EXECUTE_DUPLICATE_KEY:
+                    std::cout << "Error: cannot insert duplicate id into table\n";
+                    break;
                 case EXECUTE_FAILURE:
                     std::cout << "Execution failed\n";
                     break;
