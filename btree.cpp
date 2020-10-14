@@ -147,6 +147,36 @@ void set_node_type(char* node, NodeType nodeType) {
     *((uint8_t*)(node + NODE_TYPE_OFFSET)) = type;
 }
 
+Cursor* internal_node_find(Table* table, uint32_t root_page_num, uint32_t key) {
+    auto node = get_page(table->pager, root_page_num);
+    auto num_keys = *internal_node_num_keys(node);
+    size_t l = 0;
+    size_t r = num_keys;
+
+    // Binary search on keys to find correct child to search in recursively
+
+    while (l <= r) {
+        size_t mid = (l + r) / 2;
+        auto key_to_compare = *internal_node_key(node, mid);
+        if (key >= key_to_compare) {
+            r = mid ;
+        }
+        else {
+            l = mid + 1;
+        }
+    }
+
+    auto child_num = *internal_node_child(node, l);
+    auto child = get_page(table->pager, child_num);
+
+    // Check type of node to decide which search function to call recursively
+
+    if (get_node_type(child) == NODE_INTERNAL) {
+        return internal_node_find(table, *node, key);
+    }
+    return leaf_node_find(table, *node, key);
+}
+
 void initialize_internal_node(char* node) {
     set_node_type(node, NODE_INTERNAL);
     set_node_root(node, false);

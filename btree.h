@@ -80,5 +80,6 @@ void initialize_leaf_node(char* node);
 void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value);
 void print_leaf_node(char* node);
 void set_node_root(char* node, bool is_root);
+Cursor* internal_node_find(Table* table, uint32_t root_page_num, uint32_t key);
 
 #endif //SQLITECLONE_BTREE_H
