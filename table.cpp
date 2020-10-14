@@ -22,6 +22,7 @@ Table *db_open(const char* filename) {
     if (pager->num_pages == 0) {
         char* root_node = get_page(pager, 0);
         initialize_leaf_node(root_node);
+        set_node_root(root_node, true);
     }
 
     return table;

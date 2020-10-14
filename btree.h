@@ -34,6 +34,23 @@ const uint32_t LEAF_NODE_CELL_SIZE = LEAF_NODE_KEY_SIZE + LEAF_NODE_VALUE_SIZE;
 const uint32_t LEAF_NODE_SPACE_FOR_CELLS = PAGE_SIZE - LEAF_NODE_HEADER_SIZE;
 const uint32_t LEAF_NODE_MAX_CELLS = LEAF_NODE_SPACE_FOR_CELLS / LEAF_NODE_CELL_SIZE;
 
+// Internal Node Header Layout
+
+const uint32_t INTERNAL_NODE_NUM_KEYS_SIZE = sizeof(uint32_t);
+const uint32_t INTERNAL_NODE_NUM_KEYS_OFFSET = COMMON_NODE_HEADER_SIZE;
+const uint32_t INTERNAL_NODE_RIGHT_CHILD_SIZE = sizeof(uint32_t);
+const uint32_t INTERNAL_NODE_RIGHT_CHILD_OFFSET =   INTERNAL_NODE_NUM_KEYS_OFFSET +
+                                                    INTERNAL_NODE_NUM_KEYS_SIZE;
+const uint32_t INTERNAL_NODE_HEADER_SIZE =  COMMON_NODE_HEADER_SIZE +
+                                            INTERNAL_NODE_NUM_KEYS_SIZE +
+                                            INTERNAL_NODE_RIGHT_CHILD_SIZE;
+
+// Internal node body layout
+
+const uint32_t INTERNAL_NODE_KEY_SIZE = sizeof(uint32_t);
+const uint32_t INTERNAL_NODE_CHILD_SIZE = sizeof(uint32_t);
+const uint32_t INTERNAL_NODE_CELL_SIZE = INTERNAL_NODE_CHILD_SIZE + INTERNAL_NODE_KEY_SIZE;
+
 // Split load between nodes
 
 const uint32_t LEAF_NODE_RIGHT_SPLIT_COUNT = (LEAF_NODE_MAX_CELLS + 1) / 2;
@@ -45,12 +62,6 @@ typedef enum {
     NODE_INTERNAL,
     NODE_LEAF
 } NodeType;
-
-struct Node {
-  NodeType nodeType;
-  Node *parent;
-  Node **child_nodes;
-};
 
 // Declarations to help us from outside
 char *get_page(Pager *pager, int page_num);
@@ -64,9 +75,10 @@ Cursor* leaf_node_find(Table* table, uint32_t page_num, size_t id);
 NodeType get_node_type(const char* node);
 void set_node_type(char* node, NodeType nodeType);
 char* leaf_node_value(char* node, uint32_t cell_num);
-void leaf_node_split_insert(Cursor* cursor, uint32_t key, uint32_t value);
+void leaf_node_split_insert(Cursor* cursor, uint32_t key, Row* value);
 void initialize_leaf_node(char* node);
 void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value);
 void print_leaf_node(char* node);
+void set_node_root(char* node, bool is_root);
 
 #endif //SQLITECLONE_BTREE_H

@@ -16,12 +16,62 @@ char* leaf_node_key(char* node, uint32_t cell_num) {
     return leaf_node_cell(node, cell_num);
 }
 
+uint32_t* internal_node_num_keys(char* node) {
+    return reinterpret_cast<uint32_t *>(node + INTERNAL_NODE_NUM_KEYS_OFFSET);
+}
+
+uint32_t* internal_node_right_child(char* node) {
+    return reinterpret_cast<uint32_t *>(node + INTERNAL_NODE_RIGHT_CHILD_OFFSET);
+}
+
+uint32_t* internal_node_cell(char* node, uint32_t cell_num) {
+    return reinterpret_cast<uint32_t *>(node + INTERNAL_NODE_HEADER_SIZE + cell_num * INTERNAL_NODE_CELL_SIZE);
+}
+
+uint32_t* internal_node_child(char* node, uint32_t child_num) {
+    uint32_t num_children = *internal_node_num_keys(node);
+
+    if (child_num > num_children) {
+        std::cout << "Critical Error: tried to access child num wrongfully\n";
+        exit(EXIT_FAILURE);
+    }
+    else if (child_num == num_children) {
+        return internal_node_right_child(node);
+    }
+    return internal_node_cell(node, child_num);
+}
+
+uint32_t* internal_node_key(char* node, uint32_t key_num) {
+    return internal_node_cell(node, key_num) + INTERNAL_NODE_CHILD_SIZE;
+}
+
+static uint32_t get_node_max_key(char* node) {
+
+    // Since we sort by keys, max key is always last
+
+    if (get_node_type(node) == NODE_INTERNAL) {
+        return *internal_node_key(node, *internal_node_num_keys(node) - 1);
+    }
+    return *leaf_node_key(node, *leaf_node_num_cells(node) - 1);
+}
+
 char* leaf_node_value(char* node, uint32_t cell_num) {
     return leaf_node_key(node, cell_num) + LEAF_NODE_KEY_SIZE;
 }
 
+bool is_node_root(const char* node) {
+    uint8_t value = *((uint8_t*)(node + IS_ROOT_OFFSET));
+    return (bool)value;
+}
+
+void set_node_root(char* node, bool is_root) {
+    uint8_t value = is_root;
+    *((uint8_t*)(node + IS_ROOT_OFFSET)) = value;
+}
+
 void initialize_leaf_node(char* node) {
     set_node_type(node, NODE_LEAF);
+    set_node_root(node, false);
     *(leaf_node_num_cells(node)) = 0;
 }
 
@@ -50,14 +100,6 @@ void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value) {
     *leaf_node_num_cells(node) += 1;
     *leaf_node_key(node, cursor->cell_num) = key;
     serialize_row(value, leaf_node_value(node, cursor->cell_num));
-}
-
-void print_leaf_node(char* node) {
-    auto num_cells = *leaf_node_num_cells(node);
-    printf("Number of cells for node: %d\n", num_cells);
-    for (uint32_t i = 0; i < num_cells; i++) {
-        printf("Key of cell %d is %d\n", i, *leaf_node_key(node, i));
-    }
 }
 
 Cursor* leaf_node_find(Table* table, uint32_t page_num, size_t id) {
@@ -105,13 +147,19 @@ void set_node_type(char* node, NodeType nodeType) {
     *((uint8_t*)(node + NODE_TYPE_OFFSET)) = type;
 }
 
+void initialize_internal_node(char* node) {
+    set_node_type(node, NODE_INTERNAL);
+    set_node_root(node, false);
+    *internal_node_num_keys(node) = 0;
+}
+
 static void create_new_root(Table *table, uint32_t right_page_num) {
 
     // Handle splitting of root: old root copied to new page, becomes left child
 
     auto root = get_page(table->pager, table->root_page_num);
-    auto right_child = get_page(table->pager, right_page_num);
-    auto left_child = get_page(table->pager, get_unused_page(table->pager));
+    auto left_page_num = get_unused_page(table->pager);
+    auto left_child = get_page(table->pager, left_page_num);
 
     // Copy root to left child
 
@@ -120,16 +168,16 @@ static void create_new_root(Table *table, uint32_t right_page_num) {
 
     // Initialize root page
 
-    initialize_internal_node(root); // TODO implement me
+    initialize_internal_node(root);
     set_node_root(root, true);
     *internal_node_num_keys(root) = 1;
-    *internal_node_child(root, 0) = left_child_page_num;
+    *internal_node_child(root, 0) = left_page_num;
     uint32_t left_child_max_key = get_node_max_key(left_child);
     *internal_node_key(root, 0) = left_child_max_key;
-    *internal_node_right_child(root) = right_child_page_num;
+    *internal_node_right_child(root) = right_page_num;
 }
 
-void leaf_node_split_insert(Cursor* cursor, uint32_t key, uint32_t value) {
+void leaf_node_split_insert(Cursor* cursor, uint32_t key, Row* value) {
 
     // Create a new node then insert the upper halves into it
 
@@ -160,6 +208,7 @@ void leaf_node_split_insert(Cursor* cursor, uint32_t key, uint32_t value) {
         }
 
     // Update cell count on both leaf nodes
+
     *(leaf_node_num_cells(old_node)) = LEAF_NODE_LEFT_SPLIT_COUNT;
     *(leaf_node_num_cells(new_node)) = LEAF_NODE_RIGHT_SPLIT_COUNT;
 
