@@ -34,8 +34,8 @@ void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value) {
 
         // Node is full
 
-        printf("Here we will put split node functionality..\n");
-        exit(EXIT_FAILURE);
+        leaf_node_split_insert(cursor, key, value);
+        return;
     }
 
     if (cursor->cell_num < num_cells) {
@@ -103,4 +103,71 @@ void set_node_type(char* node, NodeType nodeType) {
 
     uint8_t type = nodeType;
     *((uint8_t*)(node + NODE_TYPE_OFFSET)) = type;
+}
+
+static void create_new_root(Table *table, uint32_t right_page_num) {
+
+    // Handle splitting of root: old root copied to new page, becomes left child
+
+    auto root = get_page(table->pager, table->root_page_num);
+    auto right_child = get_page(table->pager, right_page_num);
+    auto left_child = get_page(table->pager, get_unused_page(table->pager));
+
+    // Copy root to left child
+
+    memcpy(left_child, root, PAGE_SIZE);
+    set_node_root(left_child, false);
+
+    // Initialize root page
+
+    initialize_internal_node(root); // TODO implement me
+    set_node_root(root, true);
+    *internal_node_num_keys(root) = 1;
+    *internal_node_child(root, 0) = left_child_page_num;
+    uint32_t left_child_max_key = get_node_max_key(left_child);
+    *internal_node_key(root, 0) = left_child_max_key;
+    *internal_node_right_child(root) = right_child_page_num;
+}
+
+void leaf_node_split_insert(Cursor* cursor, uint32_t key, uint32_t value) {
+
+    // Create a new node then insert the upper halves into it
+
+    auto old_node = get_page(cursor->table->pager, cursor->page_num);
+    uint32_t new_page_num = get_unused_page(cursor->table->pager); // TODO implement me!
+    auto new_node = get_page(cursor->table->pager, new_page_num);
+    initialize_leaf_node(new_node);
+
+    // Divide keys between old and new node
+
+    for (int32_t i = LEAF_NODE_MAX_CELLS; i >= 0; i--) {
+        char* destination_node;
+        if (i >= LEAF_NODE_LEFT_SPLIT_COUNT) {
+            destination_node = new_node;
+            } else {
+            destination_node = old_node;
+            }
+        uint32_t index_within_node = i % LEAF_NODE_LEFT_SPLIT_COUNT;
+        char* destination = leaf_node_cell(destination_node, index_within_node);
+
+        if (i == cursor->cell_num) {
+            serialize_row(value, destination);
+            } else if (i > cursor->cell_num) {
+            memcpy(destination, leaf_node_cell(old_node, i - 1), LEAF_NODE_CELL_SIZE);
+            } else {
+            memcpy(destination, leaf_node_cell(old_node, i), LEAF_NODE_CELL_SIZE);
+            }
+        }
+
+    // Update cell count on both leaf nodes
+    *(leaf_node_num_cells(old_node)) = LEAF_NODE_LEFT_SPLIT_COUNT;
+    *(leaf_node_num_cells(new_node)) = LEAF_NODE_RIGHT_SPLIT_COUNT;
+
+    if (is_node_root(old_node)) {
+        return create_new_root(cursor->table, new_page_num);
+    }
+    else {
+        printf("Implement updating parent after split\n");
+        exit(EXIT_SUCCESS);
+    }
 }

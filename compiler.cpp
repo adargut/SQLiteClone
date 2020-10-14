@@ -36,10 +36,6 @@ ExecuteResult execute_insert(Statement *statement, Table *table) {
     auto node = get_page(table->pager, table->root_page_num);
     uint32_t num_cells = *leaf_node_num_cells(node);
 
-    if (num_cells >= LEAF_NODE_MAX_CELLS) {
-        return EXECUTE_TABLE_FULL;
-    }
-
     size_t row_id = statement->row_to_insert.id;
     Cursor *cursor = table_find_by_id(table, row_id); //table_end(table); TODO remove table_end?
 

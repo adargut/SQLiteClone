@@ -11,5 +11,6 @@
 Pager *pager_open(const char* filename);
 char *get_page(Pager *pager, int page_num);
 void pager_flush(Pager *pager, uint32_t page_num);
+uint32_t get_unused_page(Pager *pager);
 
 #endif //SQLITECLONE_PAGER_H

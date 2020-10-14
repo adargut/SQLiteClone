@@ -16,7 +16,7 @@ void parse_meta_command(const string &input, MetaCommand *metaCommand) {
     metaCommand->metaCommandType = MetaCommandType::UNRECOGNIZED;
 }
 
-void print_constants() {
+void print_constants() { // TODO is this really needed?
     printf("ROW_SIZE: %d\n", ROW_SIZE);
     printf("COMMON_NODE_HEADER_SIZE: %d\n", COMMON_NODE_HEADER_SIZE);
     printf("LEAF_NODE_HEADER_SIZE: %d\n", LEAF_NODE_HEADER_SIZE);
