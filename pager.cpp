@@ -68,15 +68,14 @@ void pager_flush(Pager *pager, uint32_t page_num) {
         std::cout << "Critical Error: attempt to flush a null page to disc\n";
         exit(EXIT_FAILURE);
     }
-    off_t offset = lseek(pager->fd, page_num * PAGE_SIZE, SEEK_SET);
 
+    off_t offset = lseek(pager->fd, page_num * PAGE_SIZE, SEEK_SET);
     if (offset == -1) {
         std::cout << "Critical Error: seeking failed\n";
         exit(EXIT_FAILURE);
     }
 
     int bytes_written = write(pager->fd, pager->pages[page_num], PAGE_SIZE);
-
     if (bytes_written == -1) {
         std::cout << "Critical Error: writing to file failed\n";
         exit(EXIT_FAILURE);

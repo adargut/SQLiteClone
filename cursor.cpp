@@ -5,13 +5,10 @@
 #include "cursor.h"
 
 Cursor* table_start(Table *table) {
-    auto cursor = (Cursor *)malloc(sizeof(Cursor));
-    cursor->table = table;
-    cursor->page_num = table->root_page_num;
-    cursor->cell_num = 0;
+    auto cursor = table_find_by_id(table, 0);
 
-    auto root_node = get_page(table->pager, table->root_page_num);
-    uint32_t num_cells = *leaf_node_num_cells(root_node);
+    auto node = get_page(table->pager, cursor->page_num);
+    size_t num_cells = *leaf_node_num_cells(node);
     cursor->end_of_table = (num_cells == 0);
 
     return cursor;
@@ -28,17 +25,31 @@ Cursor* table_find_by_id(Table *table, size_t id) {
 
 void advance_cursor(Cursor *cursor) {
     if (cursor->end_of_table) {
-        // TODO handle this case
         return;
     }
 
     auto pager = cursor->table->pager;
-    auto root_node = get_page(pager, cursor->table->root_page_num);
-    uint32_t max_cells = *leaf_node_num_cells(root_node);
+//    auto root_node = get_page(pager, cursor->table->root_page_num);
+    auto node = get_page(cursor->table->pager, cursor->page_num);
+    uint32_t max_cells = *leaf_node_num_cells(node);
     cursor->cell_num++;
 
+    // Check if cursor reached end of current leaf
+
     if (cursor->cell_num >= max_cells) {
-        cursor->end_of_table = true;
+        uint32_t next_leaf_page_num = *leaf_node_next_leaf(node);
+
+        // No next leaf, cursor is done
+
+        if (next_leaf_page_num == 0) {
+            cursor->end_of_table = true;
+            return;
+        }
+
+        // Next leaf exists, we advance cursor towards it
+
+        cursor->cell_num = 0;
+        cursor->page_num = next_leaf_page_num;
     }
 }
 

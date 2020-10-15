@@ -10,7 +10,7 @@
 #include "btree.h"
 
 Cursor* table_start(Table *table);
-Cursor* table_end(Table *table);
+//Cursor* table_end(Table *table); TODO remove me
 Cursor* table_find_by_id(Table *table, size_t id);
 void advance_cursor(Cursor *cursor);
 char *cursor_value(Cursor *cursor);

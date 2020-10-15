@@ -8,6 +8,10 @@ uint32_t* leaf_node_num_cells(char* node) {
     return (uint32_t *)(node + LEAF_NODE_NUM_CELLS_OFFSET);
 }
 
+uint32_t* leaf_node_next_leaf(char* node) {
+    return (uint32_t *)(node + LEAF_NODE_NEXT_LEAF_OFFSET);
+}
+
 char* leaf_node_cell(char* node, uint32_t cell_num) {
     return node + LEAF_NODE_HEADER_SIZE + LEAF_NODE_CELL_SIZE * cell_num;
 }
@@ -73,6 +77,7 @@ void initialize_leaf_node(char* node) {
     set_node_type(node, NODE_LEAF);
     set_node_root(node, false);
     *(leaf_node_num_cells(node)) = 0;
+    *(leaf_node_next_leaf(node)) = 0;
 }
 
 void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value) {
@@ -106,9 +111,10 @@ Cursor* leaf_node_find(Table* table, uint32_t page_num, size_t id) {
     auto root = get_page(table->pager, page_num);
     size_t num_cells = *leaf_node_num_cells(root);
 
-    Cursor *cursor = (Cursor *)malloc(sizeof(Cursor));
+    auto cursor = (Cursor *)malloc(sizeof(Cursor));
     cursor->page_num = page_num;
     cursor->table = table;
+    cursor->end_of_table = false;
     size_t l = 0, r = num_cells;
 
     // Perform binary search to find leaf node
@@ -212,7 +218,7 @@ void leaf_node_split_insert(Cursor* cursor, uint32_t key, Row* value) {
     // Create a new node then insert the upper halves into it
 
     auto old_node = get_page(cursor->table->pager, cursor->page_num);
-    uint32_t new_page_num = get_unused_page(cursor->table->pager); // TODO implement me!
+    uint32_t new_page_num = get_unused_page(cursor->table->pager);
     auto new_node = get_page(cursor->table->pager, new_page_num);
     initialize_leaf_node(new_node);
 
@@ -225,11 +231,13 @@ void leaf_node_split_insert(Cursor* cursor, uint32_t key, Row* value) {
             } else {
             destination_node = old_node;
             }
+
         uint32_t index_within_node = i % LEAF_NODE_LEFT_SPLIT_COUNT;
         char* destination = leaf_node_cell(destination_node, index_within_node);
 
         if (i == cursor->cell_num) {
-            serialize_row(value, destination);
+            serialize_row(value, leaf_node_value(destination_node, index_within_node));
+            *leaf_node_key(destination_node, index_within_node) = key;
             } else if (i > cursor->cell_num) {
             memcpy(destination, leaf_node_cell(old_node, i - 1), LEAF_NODE_CELL_SIZE);
             } else {
@@ -241,6 +249,13 @@ void leaf_node_split_insert(Cursor* cursor, uint32_t key, Row* value) {
 
     *(leaf_node_num_cells(old_node)) = LEAF_NODE_LEFT_SPLIT_COUNT;
     *(leaf_node_num_cells(new_node)) = LEAF_NODE_RIGHT_SPLIT_COUNT;
+
+    // Update next leaf pointers as relevant
+
+    *(leaf_node_next_leaf(new_node)) = *(leaf_node_next_leaf(old_node));
+    *(leaf_node_next_leaf(old_node)) = new_page_num;
+
+    // Handle case of splitting root
 
     if (is_node_root(old_node)) {
         return create_new_root(cursor->table, new_page_num);
