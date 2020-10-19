@@ -28,8 +28,6 @@ void advance_cursor(Cursor *cursor) {
         return;
     }
 
-    auto pager = cursor->table->pager;
-//    auto root_node = get_page(pager, cursor->table->root_page_num);
     auto node = get_page(cursor->table->pager, cursor->page_num);
     uint32_t max_cells = *leaf_node_num_cells(node);
     cursor->cell_num++;

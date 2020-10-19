@@ -58,6 +58,10 @@ const uint32_t INTERNAL_NODE_CELL_SIZE = INTERNAL_NODE_CHILD_SIZE + INTERNAL_NOD
 const uint32_t LEAF_NODE_RIGHT_SPLIT_COUNT = (LEAF_NODE_MAX_CELLS + 1) / 2;
 const uint32_t LEAF_NODE_LEFT_SPLIT_COUNT = (LEAF_NODE_MAX_CELLS + 1) - LEAF_NODE_RIGHT_SPLIT_COUNT;
 
+// Keep this small for testing
+
+const uint32_t INTERNAL_NODE_MAX_CELLS = 3;
+
 // See https://cstack.github.io/db_tutorial/assets/images/leaf-node-format.png for graphic description of layout
 
 typedef enum {

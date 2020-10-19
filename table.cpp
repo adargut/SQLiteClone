@@ -29,7 +29,6 @@ Table *db_open(const char* filename) {
 }
 
 void db_close(Table *table) {
-//    uint32_t num_full_pages = table->num_rows / ROWS_PER_PAGE;
     auto pager = table->pager;
 
     // Flush all cached pages to disc
@@ -41,20 +40,6 @@ void db_close(Table *table) {
             pager->pages[i] = nullptr;
         }
     }
-
-    // TODO Not needed because of btrees: remove after regression testing
-
-//    // Flush partial pages to disc
-//ג
-//    uint32_t num_additional_rows = table->num_rows % ROWS_PER_PAGE;
-//    if (num_additional_rows > 0) {
-//        uint32_t page_num = num_full_pages;
-//        if (pager->pages[page_num]) {
-//            pager_flush(pager, page_num, num_additional_rows * ROW_SIZE);
-//            free(pager->pages[page_num]);
-//            pager->pages[page_num] = nullptr;
-//            }
-//        }
 
     // Close fd and free all allocated memory
 

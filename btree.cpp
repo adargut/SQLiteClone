@@ -46,7 +46,7 @@ uint32_t* internal_node_child(char* node, uint32_t child_num) {
 }
 
 uint32_t* internal_node_key(char* node, uint32_t key_num) {
-    return internal_node_cell(node, key_num) + INTERNAL_NODE_CHILD_SIZE;
+    return reinterpret_cast<uint32_t *>((char *) internal_node_cell(node, key_num) + INTERNAL_NODE_CHILD_SIZE);
 }
 
 static uint32_t get_node_max_key(char* node) {
@@ -71,6 +71,10 @@ bool is_node_root(const char* node) {
 void set_node_root(char* node, bool is_root) {
     uint8_t value = is_root;
     *((uint8_t*)(node + IS_ROOT_OFFSET)) = value;
+}
+
+char* node_parent(char* node) {
+    return node + PARENT_POINTER_OFFSET;
 }
 
 void initialize_leaf_node(char* node) {
@@ -153,13 +157,13 @@ void set_node_type(char* node, NodeType nodeType) {
     *((uint8_t*)(node + NODE_TYPE_OFFSET)) = type;
 }
 
-Cursor* internal_node_find(Table* table, uint32_t root_page_num, uint32_t key) {
-    auto node = get_page(table->pager, root_page_num);
+uint32_t internal_node_find_child(char* node, uint32_t key) {
+
+    // Binary search to find key in node
+
     auto num_keys = *internal_node_num_keys(node);
     size_t l = 0;
     size_t r = num_keys;
-
-    // Binary search on keys to find correct child to search in recursively
 
     while (l <= r) {
         size_t mid = (l + r) / 2;
@@ -171,8 +175,13 @@ Cursor* internal_node_find(Table* table, uint32_t root_page_num, uint32_t key) {
             l = mid + 1;
         }
     }
+    return l;
+}
 
-    auto child_num = *internal_node_child(node, l);
+Cursor* internal_node_find(Table* table, uint32_t root_page_num, uint32_t key) {
+    auto node = get_page(table->pager, root_page_num);
+    auto child_idx = internal_node_find_child(node, key);
+    auto child_num = *internal_node_child(node, child_idx);
     auto child = get_page(table->pager, child_num);
 
     // Check type of node to decide which search function to call recursively
@@ -211,6 +220,66 @@ static void create_new_root(Table *table, uint32_t right_page_num) {
     uint32_t left_child_max_key = get_node_max_key(left_child);
     *internal_node_key(root, 0) = left_child_max_key;
     *internal_node_right_child(root) = right_page_num;
+
+    // Set parent pointers correctly
+
+    auto right_child = get_page(table->pager, right_page_num);
+    *node_parent(left_child) = table->root_page_num;
+    *node_parent(right_child) = table->root_page_num;
+}
+
+static void update_internal_node(Table* table, char* node, size_t old_key, size_t new_key) {
+    auto old_key_pos = internal_node_find_child(node, old_key);
+    *internal_node_key(node, old_key_pos) = new_key;
+}
+
+static void internal_node_insert(Table *table, uint32_t parent_page_num, uint32_t child_page_num) {
+
+    // Add a new child/key pair to a parent that corresponds to a child
+
+    auto parent = get_page(table->pager, parent_page_num);
+    auto child = get_page(table->pager, child_page_num);
+
+    auto child_max_key = get_node_max_key(child);
+    auto max_key_pos = internal_node_find_child(parent, child_max_key);
+
+    // Parent has one more new key
+
+    auto parent_num_keys = *internal_node_num_keys(parent);
+    *internal_node_num_keys(parent) = parent_num_keys + 1;
+
+    if (parent_num_keys >= INTERNAL_NODE_MAX_CELLS) {
+        printf("Critical Error: need to implement internal node split\n");
+        exit(EXIT_FAILURE);
+    }
+
+    auto right_child_page_num = *internal_node_right_child(parent);
+    auto right_child = get_page(table->pager, right_child_page_num);
+
+    // Case new child would be rightmost child
+
+    if (child_max_key > get_node_max_key(right_child)) {
+        *internal_node_child(parent, parent_num_keys) = right_child_page_num;
+        *internal_node_key(parent, parent_num_keys) = get_node_max_key(right_child);
+        *internal_node_right_child(parent) = child_page_num;
+        return;
+    }
+
+    // Case new child is a "sandwich" child somewhere between left and right
+
+    for (int i = *internal_node_num_keys(parent); i > max_key_pos; i--) {
+
+        // Shift cells right
+
+        auto dest = internal_node_cell(parent, i);
+        auto src = internal_node_cell(parent, i - 1);
+        memcpy(dest, src, INTERNAL_NODE_CELL_SIZE);
+    }
+
+    // Set new child in parent where in the correct index
+
+    *internal_node_child(parent, max_key_pos) = child_page_num;
+    *internal_node_key(parent, max_key_pos) = child_max_key;
 }
 
 void leaf_node_split_insert(Cursor* cursor, uint32_t key, Row* value) {
@@ -218,9 +287,15 @@ void leaf_node_split_insert(Cursor* cursor, uint32_t key, Row* value) {
     // Create a new node then insert the upper halves into it
 
     auto old_node = get_page(cursor->table->pager, cursor->page_num);
+
+    // Get max val in node
+
+    auto node_max_val = get_node_max_key(old_node);
+
     uint32_t new_page_num = get_unused_page(cursor->table->pager);
     auto new_node = get_page(cursor->table->pager, new_page_num);
     initialize_leaf_node(new_node);
+    *node_parent(new_node) = old_node;
 
     // Divide keys between old and new node
 
@@ -261,7 +336,10 @@ void leaf_node_split_insert(Cursor* cursor, uint32_t key, Row* value) {
         return create_new_root(cursor->table, new_page_num);
     }
     else {
-        printf("Implement updating parent after split\n");
-        exit(EXIT_SUCCESS);
+        auto parent_page_num = *node_parent(old_node);
+        auto new_max = get_node_max_key(old_node);
+        auto parent_node = get_page(cursor->table->pager, parent_page_num);
+        update_internal_node_key(parent_node, old_max, new_max);
+        internal_node_insert(cursor->table, parent_page_num, new_page_num);
     }
 }
