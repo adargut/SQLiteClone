@@ -10,6 +10,8 @@
 #include "table.h"
 #include "cursor.h"
 
+#define FILTER_TOKEN "="
+
 typedef enum {
     PREPARE_SUCCESS,
     PREPARE_UNRECOGNIZED_STATEMENT,
@@ -33,6 +35,8 @@ typedef enum {
 typedef struct {
     StatementType type;
     Row row_to_insert;
+    char* args;
+    bool where_clause;
 } Statement;
 
 PrepareResult prepare_statement(const string &input, Statement *statement);

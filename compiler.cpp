@@ -10,6 +10,16 @@ PrepareResult prepare_statement(const string &input, Statement *statement) {
 
     if (input.substr(0, 6) == "select") {
         statement->type = STATEMENT_SELECT;
+        statement->where_clause = false;
+
+        if (argc != 2 && argc != 4) return PREPARE_SYNTAX_ERROR;
+
+        if (argc == 4) {
+            statement->where_clause = true;
+            statement->args = (char*) malloc(CHAR_MAX); // todo make sure its freed
+            memset(statement->args, 0, CHAR_MAX);
+            strcpy(statement->args, splitted_string[3].c_str());
+        }
         return PREPARE_SUCCESS;
     }
     if (input.substr(0, 6) == "insert") {
@@ -37,7 +47,7 @@ ExecuteResult execute_insert(Statement *statement, Table *table) {
     uint32_t num_cells = *leaf_node_num_cells(node);
 
     size_t row_id = statement->row_to_insert.id;
-    Cursor *cursor = table_find_by_id(table, row_id); //table_end(table); TODO remove table_end?
+    Cursor *cursor = table_find_by_id(table, row_id);
 
     // Check for duplicate id before insertion
 
@@ -54,8 +64,38 @@ ExecuteResult execute_insert(Statement *statement, Table *table) {
     return EXECUTE_SUCCESS;
 }
 
+static bool id_filter(char *filter_val, Row *row) {
+    return row->id == std::stoi(filter_val) == 0;
+}
+
+static bool name_filter(char *filter_val, Row *row) {
+    return strcmp(filter_val, row->username) == 0;
+}
+
+static bool email_filter(char *filter_val, Row *row) {
+    return strcmp(filter_val, row->email) == 0;
+}
+
+static bool pass_filter(char *filter_by, char *filter_val, Row *row) {
+    if (strcmp(filter_by, "id") == 0) return id_filter(filter_val, row);
+    if (strcmp(filter_by, "name") == 0) return name_filter(filter_val, row);
+    if (strcmp(filter_by, "email") == 0) return email_filter(filter_val, row);
+
+    printf("Critical Error in filter\n");
+    exit(EXIT_FAILURE);
+}
+
 ExecuteResult execute_select(Statement *statement, Table *table) {
     Row *curr_row = (Row *)malloc(sizeof(Row));
+    char *filter_by, *filter_val;
+
+    // Apply where clause to select
+
+    if (statement->where_clause) {
+        filter_by = strtok(statement->args, FILTER_TOKEN);
+        filter_val = strtok(NULL, FILTER_TOKEN);
+    }
+
 
     // Deserialize all rows of table and print them
 
@@ -63,6 +103,12 @@ ExecuteResult execute_select(Statement *statement, Table *table) {
 
     while (!cursor->end_of_table) {
         deserialize_row(cursor_value(cursor), curr_row);
+
+        if (statement->where_clause && !pass_filter(filter_by, filter_val, curr_row)) {
+            advance_cursor(cursor);
+            continue;
+        }
+
         string row_data = std::to_string(curr_row->id) + " " + curr_row->username + " " + curr_row->email;
         std::cout << row_data << std::endl;
         advance_cursor(cursor);

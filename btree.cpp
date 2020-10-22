@@ -295,7 +295,7 @@ void leaf_node_split_insert(Cursor* cursor, uint32_t key, Row* value) {
     uint32_t new_page_num = get_unused_page(cursor->table->pager);
     auto new_node = get_page(cursor->table->pager, new_page_num);
     initialize_leaf_node(new_node);
-    *node_parent(new_node) = old_node;
+    *node_parent(new_node) = *old_node;
 
     // Divide keys between old and new node
 
@@ -339,7 +339,7 @@ void leaf_node_split_insert(Cursor* cursor, uint32_t key, Row* value) {
         auto parent_page_num = *node_parent(old_node);
         auto new_max = get_node_max_key(old_node);
         auto parent_node = get_page(cursor->table->pager, parent_page_num);
-        update_internal_node_key(parent_node, old_max, new_max);
+//        update_internal_node_key(parent_node, old_max, new_max);
         internal_node_insert(cursor->table, parent_page_num, new_page_num);
     }
 }
